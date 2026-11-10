@@ -1,0 +1,26 @@
+name: Keepalive
+
+# GitHub disables scheduled workflows in a repo with no commits for 60 days.
+# This commits a timestamp once a month so the ping schedule stays enabled.
+on:
+  schedule:
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Commit a timestamp
+        run: |
+          date -u +"Last keepalive: %Y-%m-%dT%H:%M:%SZ" > KEEPALIVE.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add KEEPALIVE.md
+          git commit -m "chore: keepalive"
+          git push

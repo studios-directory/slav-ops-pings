@@ -1,0 +1,10 @@
+[
+  { "slug": "cockpit", "health_url": "https://slav-vault-kanban.vercel.app/api/health" },
+  { "slug": "creative-studio-hire", "health_url": "https://creativestudiohire.com/" },
+  { "slug": "shiftowt", "health_url": "https://shiftowt.com/" },
+  { "slug": "fleetpad", "health_url": "https://fleetpad.co.uk/api/health" },
+  { "slug": "hoststock", "health_url": "https://hoststock.app/api/health" },
+  { "slug": "guestflow", "health_url": "https://guestflow.vercel.app/" },
+  { "slug": "backdrops", "health_url": "https://handpaintedbackdrops.co.uk/" },
+  { "slug": "nicheforge", "health_url": "https://funeralcostfinder.com/" }
+]
