@@ -6,6 +6,10 @@ health URL (`apps.json`) and sends a signed heartbeat to the Ops Cockpit. GitHub
 starts the next run itself; the cron only restarts the chain if it breaks. A monthly keepalive commit
 stops GitHub from disabling the schedules.
 
+In the Actions tab a healthy chain looks like one "Ping" run in progress and, most of the time, one
+queued. Cron runs that arrive while one is already queued end as "cancelled"; that is the concurrency
+group doing its job, not an error. If nothing is running, `gh workflow run ping.yml` starts the chain.
+
 ## What is in here
 
 - `ping.mjs`: Node 22, no dependencies. GET each health URL (15 s timeout), then POST the result to

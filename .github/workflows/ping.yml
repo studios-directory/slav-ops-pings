@@ -30,10 +30,11 @@ jobs:
         env:
           COCKPIT_URL: ${{ secrets.COCKPIT_URL }}
           PINGS_HMAC_SECRET: ${{ secrets.PINGS_HMAC_SECRET }}
-      # Only a run whose heartbeats were accepted hands over to the next one; if the cockpit stops
-      # accepting them the chain ends and the cron brings it back later.
+      # Hand over even after a failed round or a timeout: one rejected heartbeat in five hours must not
+      # break the chain, because the cron that would restart it is the unreliable part. A cancelled run
+      # (replaced in the queue) starts nothing.
       - name: Start the next run
-        if: success()
+        if: ${{ !cancelled() }}
         run: gh workflow run ping.yml --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ github.token }}
