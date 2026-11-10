@@ -1,5 +1,6 @@
-// Sends one signed heartbeat per watched app to the Ops Cockpit.
-// Node 22 built-ins only. No secrets are ever printed. See README.md.
+// Sends signed heartbeats for every watched app to the Ops Cockpit: one round by default, or
+// `--rounds N --every SECONDS` to keep going inside a single long job (GitHub's 10-minute cron is
+// not reliable on its own). Node 22 built-ins only. No secrets are ever printed. See README.md.
 import { createHmac, randomBytes } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
@@ -149,8 +150,45 @@ export async function runPings({ apps, cockpitUrl, secret, dryRun, fetchFn = fet
   return done.sort((a, b) => a.order - b.order).map((d) => d.result);
 }
 
+/**
+ * Reads `--rounds N` and `--every SECONDS` (defaults: one round, 600 s). Anything that is not a
+ * positive whole number falls back to the default, so a typo never turns into a tight loop.
+ * @param {readonly string[]} argv
+ * @returns {{ rounds: number, everyMs: number, dryRun: boolean }}
+ */
+export function parseArgs(argv) {
+  const read = (flag, fallback) => {
+    const i = argv.indexOf(flag);
+    const n = i === -1 ? NaN : Number(argv[i + 1]);
+    return Number.isInteger(n) && n > 0 ? n : fallback;
+  };
+  return { rounds: read("--rounds", 1), everyMs: read("--every", 600) * 1000, dryRun: argv.includes("--dry-run") };
+}
+
+/**
+ * Runs `round()` `rounds` times, starting each one `everyMs` after the previous one started
+ * (a slow round shortens the pause; the pause is never negative). Resolves to false if any round failed.
+ * @param {{ rounds: number, everyMs: number, round: () => Promise<boolean>, sleep?: (ms: number) => Promise<void>, now?: () => number, log?: (line: string) => void }} options
+ * @returns {Promise<boolean>}
+ */
+export async function runRounds({ rounds, everyMs, round, sleep = defaultSleep, now = Date.now, log = writeLine }) {
+  let allOk = true;
+  for (let i = 1; i <= rounds; i++) {
+    const started = now();
+    if (rounds > 1) log(`round ${i}/${rounds} at ${new Date(started).toISOString()}`);
+    if (!(await round())) allOk = false;
+    if (i < rounds) await sleep(Math.max(0, everyMs - (now() - started)));
+  }
+  return allOk;
+}
+
+/** @param {number} ms */
+function defaultSleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function main() {
-  const dryRun = process.argv.includes("--dry-run");
+  const { rounds, everyMs, dryRun } = parseArgs(process.argv.slice(2));
   const cockpitUrl = process.env.COCKPIT_URL ?? "";
   const secret = process.env.PINGS_HMAC_SECRET ?? "";
   if (!dryRun && (!cockpitUrl || !secret)) {
@@ -158,8 +196,15 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  const results = await runPings({ apps: appsFile, cockpitUrl, secret, dryRun });
-  if (!dryRun && results.some((r) => !r.posted)) process.exitCode = 1;
+  const ok = await runRounds({
+    rounds,
+    everyMs,
+    round: async () => {
+      const results = await runPings({ apps: appsFile, cockpitUrl, secret, dryRun });
+      return dryRun || results.every((r) => r.posted);
+    },
+  });
+  if (!ok) process.exitCode = 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
