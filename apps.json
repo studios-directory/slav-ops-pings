@@ -4,7 +4,7 @@
   { "slug": "shiftowt", "health_url": "https://shiftowt.com/" },
   { "slug": "fleetpad", "health_url": "https://fleetpad.co.uk/api/health" },
   { "slug": "hoststock", "health_url": "https://hoststock.app/api/health" },
-  { "slug": "guestflow", "health_url": "https://guestflow.vercel.app/" },
+  { "slug": "guestflow", "health_url": "https://checkin.relaxstays.co.uk/api/health" },
   { "slug": "backdrops", "health_url": "https://handpaintedbackdrops.co.uk/" },
   { "slug": "nicheforge", "health_url": "https://funeralcostfinder.com/" }
 ]
